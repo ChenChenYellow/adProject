@@ -14,10 +14,38 @@ if (isset($_POST["btnNext"])) {
         $page_index = $page_index - 5;
     }
 } else {
-    $_SESSION["paid_ads"] = Ad::readAllPaid($con);
+    $_SESSION["all_ads"] = Ad::readAll($con);
+    $_SESSION["paid_ads"] = Ad::getPaidFromArr($con, $_SESSION["all_ads"], 1);
     $_SESSION["categorys"] = Category::readAll($con);
     $page_index = 0;
 }
+if (isset($_POST["btnSearch"]) && $_POST["btnSearch"] == "search") {
+    $_SESSION["search_result"] = Ad::searchFor($_SESSION["all_ads"], $_POST["txtSearch"]);
+    header("Location:ad_list_page.php?id=0&paid=search_result");
+}
+if (isset($_SESSION["Language"])) {
+    if (isset($_POST["btnLanguage"])) {
+        $_SESSION["Language"] = $_POST["btnLanguage"];
+    }
+} else {
+    $_SESSION["Language"] = "English";
+}
+if ($_SESSION["Language"] == "French") {
+    $f = "Francais";
+    $e = "Anglais";
+    $reg = "Enregistrer";
+    $go = "Chercher";
+    $login = "Connecter";
+    $search = "Cherche";
+} else {
+    $f = "French";
+    $e = "English";
+    $reg = "Register";
+    $go = "Go";
+    $login = "Login";
+    $search = "Search";
+}
+
 ?>
 <html>
 <head>
@@ -54,14 +82,14 @@ if (isset($_POST["btnNext"])) {
 		</div>
 
 		<div id="menu" class="collapse button-group row">
-			<button class="btn btn-primary" type="submit">Francais</button>
-			<button class="btn btn-primary" type="submit">English</button>
+			<button class="btn btn-primary" type="submit" name="btnLanguage"
+				value="French"><?php echo $f;?></button>
+			<button class="btn btn-primary" type="submit" name="btnLanguage"
+				value="English"><?php echo $e;?></button>
 			<button class="btn btn-primary"
-				onclick="location.href = 'register.php'" type="button">Register</button>
-			<button class="btn btn-primary"
-				onclick="location.href = 'post_add.php'" type="button">Post Ad</button>
+				onclick="location.href = 'register.php'" type="button"><?php echo $reg;?></button>
 			<button class="btn btn-primary" onclick="location.href = 'login.php'"
-				type="button">Log IN</button>
+				type="button"><?php echo $login;?></button>
 		</div>
 		<br /> <br /> <br />
 
@@ -90,95 +118,57 @@ for ($i = $page_index; $i < $page_index + 5; $i ++) {
 		</div>
 
 		<div id="search" class="input-group mb-3">
-			<input type="text" class="form-control" placeholder="Search" />
+			<input type="text" class="form-control"
+				placeholder="<?php echo $search;?>" name="txtSearch" />
 
 			<div class="input-group-append">
-				<button class="btn btn-success" type="submit">Go</button>
+				<button class="btn btn-success" type="sumbit" value="search"
+					name="btnSearch"><?php echo $go;?></button>
 			</div>
 		</div>
 
 <?php
 $temp = 0;
-foreach ($_SESSION["categorys"] as $cat) {
-    if ($temp == 0) {
-        echo "<div class='row'>
+if ($_SESSION["Language"] == "French") {
+    foreach ($_SESSION["categorys"] as $cat) {
+        if ($temp == 0) {
+            echo "<div class='row'>
 			<div class='col-md-1'></div>";
+        }
+        echo "<div class='col-md-3'>";
+        echo "<h3><a href='ad_list_page.php?cat_id=" . $cat->getCat_ID() . "&paid=cat_ads'>" . $cat->getDesc_F() . "</a></h3>";
+        foreach ($cat->getArrSubCat() as $subcat) {
+            echo "<p><a href='ad_list_page.php?subcat_id=" . $subcat->getSubCat_ID() . "&paid=subcat_ads'>" . $subcat->getDesc_f() . "</a></p>";
+        }
+        echo "</div>";
+        if ($temp == 2) {
+            echo "<div class='col-md-1'></div></div>";
+            $temp = 0;
+        } else {
+            $temp ++;
+        }
     }
-    echo "<div class='col-md-3'>";
-    echo "<h3><a href='#'>" . $cat->getDesc_E() . "</a></h3>";
-    foreach ($cat->getArrSubCat() as $subcat) {
-        echo "<p><a href='#'>" . $subcat->getDesc_e() . "</a></p>";
-    }
-    echo "</div>";
-    if ($temp == 2) {
-        echo "<div class='col-md-1'></div></div>";
-        $temp = 0;
-    } else {
-        $temp ++;
+} else {
+    foreach ($_SESSION["categorys"] as $cat) {
+        if ($temp == 0) {
+            echo "<div class='row'>
+			<div class='col-md-1'></div>";
+        }
+        echo "<div class='col-md-3'>";
+        echo "<h3><a href='ad_list_page.php?cat_id=" . $cat->getCat_ID() . "&paid=cat_ads'>" . $cat->getDesc_E() . "</a></h3>";
+        foreach ($cat->getArrSubCat() as $subcat) {
+            echo "<p><a href='ad_list_page.php?subcat_id=" . $subcat->getSubCat_ID() . "&paid=subcat_ads'>" . $subcat->getDesc_e() . "</a></p>";
+        }
+        echo "</div>";
+        if ($temp == 2) {
+            echo "<div class='col-md-1'></div></div>";
+            $temp = 0;
+        } else {
+            $temp ++;
+        }
     }
 }
 ?>
-<!-- 
-		<div class="row">
-			<div class="col-md-1"></div>
-			<div class="col-md-3">
-				<h3>
-					<a href="#">a0</a>
-				</h3>
-				<p>
-					<a href="#">a1</a>
-				</p>
-				<p>
-					<a href="#">a2</a>
-				</p>
-				<p>
-					<a href="#">a3</a>
-				</p>
-				<p>
-					<a href="#">a4</a>
-				</p>
-				<p>
-					<a href="#">a5</a>
-				</p>
-			</div>
-			<div class="col-md-3">
-				<p>
-					<a href="#">b1</a>
-				</p>
-				<p>
-					<a href="#">b2</a>
-				</p>
-				<p>
-					<a href="#">b3</a>
-				</p>
-				<p>
-					<a href="#">b4</a>
-				</p>
-				<p>
-					<a href="#">b5</a>
-				</p>
-
-			</div>
-			<div class="col-md-3">
-				<p>
-					<a href="#">c1</a>
-				</p>
-				<p>
-					<a href="#">c2</a>
-				</p>
-				<p>
-					<a href="#">c3</a>
-				</p>
-				<p>
-					<a href="#">c4</a>
-				</p>
-				<p>
-					<a href="#">c5</a>
-				</p>
-
-			</div>
-			<div class="col-md-2"></div>
-		</div> -->
 	</form>
 </body>
 

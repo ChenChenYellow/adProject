@@ -3,9 +3,10 @@ include_once 'class.php';
 include_once 'dbConfig.php';
 
 session_start();
-$firstV = "visible";
-$secondV = "hidden";
-$thirdV = "hidden";
+$firstV = "";
+$secondV = "display:none";
+$thirdV = "display:none";
+$errorMessage = "";
 $title = $category = $money = $description = $subCategory = null;
 $extraPic = 0;
 if (isset($_POST["extraPic"])) {
@@ -32,61 +33,106 @@ if (isset($_POST["sub-category"])) {
 }
 if (isset($_POST["btnNext"])) {
     if ($_POST["btnNext"] == "submitPageOne") {
-        $firstV = "hidden";
-        $secondV = "visible";
+        if ($_POST["category"] > 0 && $_POST["title"] != "") {
+            $firstV = "display:none";
+            $secondV = "";
+        } else {
+            $errorMessage = "Title cannot be empty neither can category";
+        }
     } elseif ($_POST["btnNext"] == "backToPageOne") {
-        $firstV = "visible";
-        $secondV = "hidden";
+        $firstV = "";
+        $secondV = "display:none";
         $subCategory = null;
     } elseif ($_POST["btnNext"] == "submitPageTwo") {
-        $firstV = "hidden";
-        $secondV = "hidden";
-        $thirdV = "visible";
-        $adID = Ad::getID($con) + 1;
-        $paid = 1;
-        if ($money == 0) {
-            $temp = 0;
-            $temptime = "+10 day";
-            $paid = 0;
-        } elseif ($money == 5) {
-            $temp = 1;
-            $temptime = "+1 week";
-        } elseif ($money == 10) {
-            $temp = 5;
-            $temptime = "+2 week";
-        } elseif ($money == 15) {
-            $temp = 10 + $extraPic;
-            $temptime = "+1 month";
-        }
-
-        $ad = new Ad($adID, $title, $description, $category, $subCategory, date("Y-m-d"), date("Y-m-d", strtotime($temptime)), $paid, $_SESSION["User"]);
-        $ad->create($con);
-        
-        $target_dir = str_replace('\\', '/', __DIR__)."/images/";
-        echo $target_dir;
-        for ($i = 1; $i <= $temp; $i ++) {
-
-            $uploadOK = 1;
-            $imageFileType = strtolower(pathinfo($_FILES["image$i"]["name"], PATHINFO_EXTENSION));
-
-            $check = getimagesize($_FILES["image$i"]["tmp_name"]);
-
-            $target_file = $target_dir . basename($_FILES["image$i"]["tmp_name"], ".tmp") . "." . $imageFileType;
-
-            if (move_uploaded_file($_FILES["image$i"]["tmp_name"], $target_file)) {
-                echo "The file " . basename($_FILES["image$i"]["name"]) . " has been uploaded.";
-                $tempPic = new Picture($adID, $target_file);
-                $tempPic->create($con);
-            } else {
-                echo "ERROR";
+        if ($_POST["sub-category"] > 0 && $_POST["description"] != "") {
+            $firstV = "display:none";
+            $secondV = "display:none";
+            $thirdV = "";
+            $adID = Ad::getID($con) + 1;
+            $paid = 1;
+            if ($money == 0) {
+                $temp = 0;
+                $temptime = "+10 day";
+                $paid = 0;
+            } elseif ($money == 5) {
+                $temp = 1;
+                $temptime = "+1 week";
+            } elseif ($money == 10) {
+                $temp = 5;
+                $temptime = "+2 week";
+            } elseif ($money == 15) {
+                $temp = 10 + $extraPic;
+                $temptime = "+1 month";
             }
-        }
-        if ($money > 0) {
-            $p_id = PaymentLog::getID($con);
-            $payment = new PaymentLog($adID, $money + ($extraPic * 0.5), date("Y-m-d"), $p_id, $_SESSION["User"]);
-            $payment->create($con);
+
+            $ad = new Ad($adID, $title, $description, $category, $subCategory, date("Y-m-d"), date("Y-m-d", strtotime($temptime)), $paid, $_SESSION["User"]);
+            $ad->create($con);
+
+            $target_dir = str_replace('\\', '/', __DIR__) . "/images/";
+            for ($i = 1; $i <= $temp; $i ++) {
+                $imageFileType = strtolower(pathinfo($_FILES["image$i"]["name"], PATHINFO_EXTENSION));
+                $target_file = $target_dir . basename($_FILES["image$i"]["tmp_name"], ".tmp") . "." . $imageFileType;
+
+                if (move_uploaded_file($_FILES["image$i"]["tmp_name"], $target_file)) {
+                    echo "The file " . basename($_FILES["image$i"]["name"]) . " has been uploaded.";
+                    $tempPic = new Picture($adID, $target_file);
+                    $tempPic->create($con);
+                } else {
+                    echo "ERROR";
+                }
+            }
+            if ($money > 0) {
+                $discount = new Discount($_SESSION["User"]);
+                $discount = $discount->find($con);
+                if ($discount != null) {
+                    echo "asdfasdf";
+                    $percentage = $discount->getPercentage();
+                    echo ($money + ($extraPic * 0.5)) * (100 - $percentage) / 100;
+                    $p_id = PaymentLog::getID($con);
+                    $payment = new PaymentLog($adID, ($money + ($extraPic * 0.5)) * (100 - $percentage) / 100, date("Y-m-d"), $p_id, $_SESSION["User"]);
+                    echo $payment;
+                    $payment->create($con);
+
+                    $discount->delete($con);
+                } else {
+                    $p_id = PaymentLog::getID($con);
+                    $payment = new PaymentLog($adID, $money + ($extraPic * 0.5), date("Y-m-d"), $p_id, $_SESSION["User"]);
+                    $payment->create($con);
+                }
+            }
+        } else {
+            $firstV = "display:none";
+            $secondV = "";
+            $errorMessage = "Sub Category cannot be empty, neither can Description";
         }
     }
+}
+
+if (! isset($_SESSION["Language"])) {
+    $_SESSION["Language"] = "English";
+}
+if ($_SESSION["Language"] == "French") {
+    $t = "Titre";
+    $c = "Categorie";
+    $doYouPay = "Voulez Vous Payer Votre Ad?";
+    $doYouPayExtra = "Extra Photo Pour 0.5$? Seulement Pour l'option de 15$";
+    $sc = "Sub-Categorie";
+    $next = "Suivant";
+    $clear = "Vider";
+    $back = "Retour";
+    $payNow = "Payer Maintenant";
+    $free = "Gratuit";
+} else {
+    $t = "Title";
+    $c = "Category";
+    $doYouPay = "Do You Want To Pay Your Ad";
+    $doYouPayExtra = "Extra Picture For 0.5$? Only Available For 15$ Option";
+    $sc = "Sub-Category";
+    $next = "Next";
+    $clear = "Clear";
+    $back = "Back";
+    $payNow = "Pay Now";
+    $free = "Free";
 }
 
 ?><html>
@@ -112,10 +158,10 @@ if (isset($_POST["btnNext"])) {
 		integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
 		crossorigin="anonymous"></script>
 	<form action="#" method="post" enctype="multipart/form-data">
-		<div style="visibility: <?php echo $firstV?>">
+		<div style="<?php echo $firstV?>">
 			<div class="input-group mb-3">
 				<div class="input-group-prepend">
-					<span class="input-group-text">Title</span>
+					<span class="input-group-text"><?php echo $t;?></span>
 				</div>
 				<input type="text" class="form-control" name="title"
 					value="<?php echo $title?>" />
@@ -123,14 +169,20 @@ if (isset($_POST["btnNext"])) {
 
 			<div class="input-group mb-3">
 				<div class="input-group-prepend">
-					<span class="input-group-text">Category</span>
+					<span class="input-group-text"><?php echo $c;?></span>
 				</div>
 				<select class="custom-select" name="category">
 					<option value="0" <?php if($category == 0){echo "selected";}?>>Please
 						Select one category</option>
 					<?php
-    foreach (Category::readAll($con) as $item) {
-        echo $item->toOptionE($category);
+    if ($_SESSION["Language"] == "French") {
+        foreach (Category::readAll($con) as $item) {
+            echo $item->toOptionF($category);
+        }
+    } else {
+        foreach (Category::readAll($con) as $item) {
+            echo $item->toOptionE($category);
+        }
     }
     ?>
 				</select>
@@ -139,10 +191,10 @@ if (isset($_POST["btnNext"])) {
 
 			<div class="input-group mb-3">
 				<div class="input-group-prepend">
-					<span class="input-group-text">Do you want to pay your ad</span>
+					<span class="input-group-text"><?php echo $doYouPay;?></span>
 				</div>
 				<select class="custom-select" name="payment">
-					<option value="0" <?php if($money == 0){echo "selected";}?>>Free</option>
+					<option value="0" <?php if($money == 0){echo "selected";}?>><?php echo $free;?></option>
 					<option value="5" <?php if($money == 5){echo "selected";}?>>5 $</option>
 					<option value="10" <?php if($money == 10){echo "selected";}?>>10 $</option>
 					<option value="15" <?php if($money == 15){echo "selected";}?>>15 $</option>
@@ -151,8 +203,7 @@ if (isset($_POST["btnNext"])) {
 
 			<div class="input-group mb-3">
 				<div class="input-group-prepend">
-					<span class="input-group-text">Do you want to get extra picture for
-						0.5$? Only availeble for 15$ option</span>
+					<span class="input-group-text"><?php echo $doYouPayExtra;?></span>
 				</div>
 				<input name="extraPic" type="number" class="form-control"
 					value="<?php echo $extraPic?>" />
@@ -160,18 +211,17 @@ if (isset($_POST["btnNext"])) {
 
 			<div class="btn-group">
 				<button type="submit" class="btn btn-primary" name="btnNext"
-					value="submitPageOne">Next</button>
-				<button type="reset" class="btn btn-primary">Clear</button>
+					value="submitPageOne"><?php echo $next;?></button>
+				<button type="reset" class="btn btn-primary"><?php echo $clear;?></button>
 			</div>
 		</div>
-		<div style="visibility: <?php echo $secondV?>">
+		<div style="<?php echo $secondV?>">
 			<div class="input-group mb-3">
 				<div class="input-group-prepend">
 					<span class="input-group-text">Sub-Category</span>
 				</div>
 				<select class="custom-select" name="sub-category">
-					<option value="<?php echo $subCategory?>">Please Select one
-						sub-category</option>
+					<option value="<?php echo $subCategory?>"><?php echo $sc;?></option>
 					<?php
     foreach (SubCategory::readAll($con) as $item) {
         echo $item->toOptionE($category);
@@ -205,19 +255,41 @@ if ($money == 0) {} elseif ($money == 5) {
     }
 }
 ?>
-		<p>Price will be <?php echo ($money + ($extraPic * 0.5))?></p>
+<?php
+if ($_SESSION["Language"] == "French") {
+    $priceWillBe = "Prix va etre ";
+    $youHaveDiscount = "Vous avez un Rabais, ";
+    $save = "Economisez ";
+} else {
+    $priceWillBe = "Price will be ";
+    $youHaveDiscount = "You have Discount, ";
+    $save = "Save ";
+}
+echo "<p>$priceWillBe" . ($money + ($extraPic * 0.5)) . " $</p>";
+if ($money != 0) {
+    $discount = new Discount($_SESSION["User"]);
+    $discount = $discount->find($con);
+    if ($discount != null) {
+        echo "<p>$youHaveDiscount" . $discount->getPercentage() . "%</p>";
+        echo "<p>$save" . ($discount->getPercentage() * ($money + ($extraPic * 0.5)) / 100) . "$</p>";
+        echo "<p>$priceWillBe" . ((100 - $discount->getPercentage()) * ($money + ($extraPic * 0.5)) / 100) . "$</p>";
+    }
+}
+?>
 			<div class="btn-group">
 				<button type="submit" class="btn btn-primary" name="btnNext"
-					value="submitPageTwo">Pay Now</button>
+					value="submitPageTwo"><?php echo $payNow;?></button>
 				<button type="submit" class="btn btn-primary" name="btnNext"
-					value="backToPageOne">Back</button>
+					value="backToPageOne"><?php echo $back;?></button>
 			</div>
 		</div>
-		<div style="visibility: <?php echo $thirdV?>">
+		<div style="<?php echo $thirdV?>">
 			<div class="btn-group">
-				<button type="button" class="btn btn-primary" onclick="location.href = 'index.php'">Back</button>
-					</div>
+				<button type="button" class="btn btn-primary"
+					onclick="location.href = 'index.php'"><?php echo $back;?></button>
+			</div>
 		</div>
+		<p><?php if(isset($errorMessage)){echo $errorMessage;}?></p>
 	</form>
 
 

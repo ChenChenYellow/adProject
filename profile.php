@@ -6,17 +6,22 @@ if(isset($_POST["btnLanguage"]) && $_POST["btnLanguage"] == "French"){
 }else{
     $_SESSION["Language"] = "English";
 }
+if (isset($_SESSION["Language"])) {
+    if (isset($_POST["btnLanguage"])) {
+        $_SESSION["Language"] = $_POST["btnLanguage"];
+    }
+} else {
+    $_SESSION["Language"] = "English";
+}
 if($_SESSION["Language"] == "French"){
-    $f = "Français"; 
+    $f = "Francais"; 
     $e = "Anglais";
-    $home = "Retour a la page principale";
-    $reg = "Devenir un utilisateur";
-    $pa = "Poster un Ad";
+    $home = "Acceuil";
+    $pa = "Poster Ad";
 }else{
     $f = "French";
     $e = "English";
-    $home = "Back To Home";
-    $reg = "Become a User";
+    $home = "Home";
     $pa = "Post Ad";
 }
 ?><html>
@@ -60,10 +65,9 @@ if($_SESSION["Language"] == "French"){
 			data-toggle="collapse" data-target="#menu" type="button">MENU</button>
 	</div>
 	<div id="menu" class="collapse button-group row">
+		<button class="btn btn-primary" onclick="location.href = 'index.php'" type="button"><?php echo $home;?></button>
 		<button class="btn btn-primary" type="submit" value="French" name="btnLanguage"><?php echo $f;?></button>
 		<button class="btn btn-primary" type="submit" value="English" name="btnLanguage"><?php echo $e;?></button>
-		<button class="btn btn-primary" onclick="location.href = 'index.php'" type="button"><?php echo $home;?></button>
-		<button class="btn btn-primary" onclick="location.href = 'register.php'" type="button"><?php echo $reg;?></button>
 		<button class="btn btn-primary" onclick="location.href = 'post_add.php'" type="button"><?php echo $pa;?></button>
 	</div>
 </form>

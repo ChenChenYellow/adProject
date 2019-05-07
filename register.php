@@ -1,9 +1,10 @@
 <?php
 require_once 'dbConfig.php';
 require_once 'class.php';
+session_start();
 $message = "";
 $username = $password = $re_password = $true_name = $address = $city = $state = $phone = "";
-if ($_POST["btnSubmit"] == "Submit") {
+if (isset($_POST["btnSubmit"]) && $_POST["btnSubmit"] == "submit") {
     $username = $_POST["username"];
     $password = $_POST["password"];
     $re_password = $_POST["re_password"];
@@ -12,6 +13,7 @@ if ($_POST["btnSubmit"] == "Submit") {
     $city = $_POST["city"];
     $state = $_POST["state"];
     $phone = $_POST["phone"];
+    echo "Submit";
     if ($_POST["password"] == $_POST["re_password"]) {
         $user = new User($username, $password, $true_name, $address, $city, $state, $phone, "NON-MEMBER");
         if ($user->find($con) == null) {
@@ -23,6 +25,32 @@ if ($_POST["btnSubmit"] == "Submit") {
     } else {
         $message = "Please check Password ";
     }
+}
+if (!isset($_SESSION["Language"])) {
+    $_SESSION["Language"] = "English";
+}
+if ($_SESSION["Language"] == "French") {
+    $u = "Nom d'utilisateur";
+    $p = "Mot de passe";
+    $rp = "Re-Enterer Mot de passe";
+    $c = "Ville";
+    $s = "Etat";
+    $sub = "Soumettre";
+    $clear = "Vider";
+    $back = "Retour";
+    $pn = "Numero de Telephone";
+    $n = "Nom";
+} else {
+    $u = "Username";
+    $p = "Password";
+    $rp = "Retype Password";
+    $c = "City";
+    $s = "State";
+    $sub = "Submit";
+    $clear = "Clear";
+    $back = "Back";
+    $pn = "Phone Number";
+    $n = "Name";
 }
 ?>
 
@@ -55,7 +83,7 @@ if ($_POST["btnSubmit"] == "Submit") {
 	<form action="#" method="post">
 		<div class="input-group mb-3">
 			<div class="input-group-prepend">
-				<span class="input-group-text">Username</span>
+				<span class="input-group-text"><?php echo $u;?></span>
 
 			</div>
 
@@ -65,7 +93,7 @@ if ($_POST["btnSubmit"] == "Submit") {
 
 		<div class="input-group mb-3">
 			<div class="input-group-prepend">
-				<span class="input-group-text">Password</span>
+				<span class="input-group-text"><?php echo $p;?></span>
 
 			</div>
 			<input type="password" class="form-control" name="password"
@@ -74,7 +102,7 @@ if ($_POST["btnSubmit"] == "Submit") {
 
 		<div class="input-group mb-3">
 			<div class="input-group-prepend">
-				<span class="input-group-text">Retype Password</span>
+				<span class="input-group-text"><?php echo $rp;?></span>
 
 			</div>
 			<input type="password" class="form-control" name="re_password"
@@ -83,7 +111,7 @@ if ($_POST["btnSubmit"] == "Submit") {
 
 		<div class="input-group mb-3">
 			<div class="input-group-prepend">
-				<span class="input-group-text">Name</span>
+				<span class="input-group-text"><?php echo $n;?></span>
 
 			</div>
 			<input type="text" class="form-control" name="true_name"
@@ -103,7 +131,7 @@ if ($_POST["btnSubmit"] == "Submit") {
 
 		<div class="input-group mb-3">
 			<div class="input-group-prepend">
-				<span class="input-group-text">City</span>
+				<span class="input-group-text"><?php echo $c;?></span>
 
 			</div>
 			<input type="text" class="form-control" name="city"
@@ -113,7 +141,7 @@ if ($_POST["btnSubmit"] == "Submit") {
 
 		<div class="input-group mb-3">
 			<div class="input-group-prepend">
-				<span class="input-group-text">State</span>
+				<span class="input-group-text"><?php echo $s;?></span>
 
 			</div>
 			<input type="text" class="form-control" name="state"
@@ -123,7 +151,7 @@ if ($_POST["btnSubmit"] == "Submit") {
 
 		<div class="input-group mb-3">
 			<div class="input-group-prepend">
-				<span class="input-group-text">Phone Number</span>
+				<span class="input-group-text"><?php echo $pn;?></span>
 
 			</div>
 			<input type="text" class="form-control" name="phone"
@@ -131,10 +159,10 @@ if ($_POST["btnSubmit"] == "Submit") {
 		</div>
 		<div class="btn-group">
 			<button type="submit" class="btn btn-primary" name="btnSubmit"
-				value="submit">Sumbit</button>
-			<button type="reset" class="btn btn-primary">Clear</button>
+				value="submit"><?php echo $sub;?></button>
+			<button type="reset" class="btn btn-primary"><?php echo $clear;?></button>
 			<button type="button" class="btn btn-info"
-				onclick="location.href = 'index.php'">Back</button>
+				onclick="location.href = 'index.php'"><?php echo $back;?></button>
 		</div>
 		<p><?php echo $message?></p>
 

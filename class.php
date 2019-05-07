@@ -99,6 +99,11 @@ class Category
     {
         return $this->desc_f;
     }
+
+    public function getCat_ID()
+    {
+        return $this->id;
+    }
 }
 
 class User
@@ -149,7 +154,8 @@ class User
 
     public function find($connection)
     {
-        $sql = "select * from web_user where username = '$this->username'";
+        $ret = null;
+        $sql = "select * from web_user where username = '$this->username' and pswd = '$this->password'";
         foreach ($connection->query($sql) as $one) {
             $ret = new User($one["username"], $one["pswd"], $one["true_name"], $one["address"], $one["city"], $one["state"], $one["phone"], $one["member"]);
             break;
@@ -268,6 +274,11 @@ class SubCategory
     {
         return $this->desc_f;
     }
+
+    public function getSubCat_ID()
+    {
+        return $this->id;
+    }
 }
 
 class Ad
@@ -318,6 +329,11 @@ class Ad
         $this->description = $description;
     }
 
+    public function getStartDate()
+    {
+        return $this->startDate;
+    }
+
     public function __construct($ad_id = null, $title = null, $description = null, $cat_id = null, $subcat_id = null, $startDate = null, $endDate = null, $paid = null, $username = null)
     {
         $this->ad_id = $ad_id;
@@ -340,7 +356,7 @@ class Ad
 
     public static function readAll($connection)
     {
-        $sql = "select * from ad";
+        $sql = "select * from ad order by startDate desc";
         $counter = 0;
         $arr;
         foreach ($connection->query($sql) as $one) {
@@ -349,21 +365,55 @@ class Ad
         return $arr;
     }
 
-    public static function readAllPaid($connection)
+    public static function getPaidFromArr($connection, $arr, $value)
     {
-        $sql = "select * from ad where paid = 1 order by startDate desc";
         $counter = 0;
-        $arr;
-        foreach ($connection->query($sql) as $one) {
-            $temp = (new Ad($one["ad_id"], $one["title"], $one["description"], $one["cat_id"], $one["subcat_id"], $one["startDate"], $one["endDate"], $one["paid"], $one["username"]));
-            $urlCounter = 0;
-            $urlSQL = "select p_url from picture where ad_id = " . $one["ad_id"];
-            foreach ($connection->query($urlSQL) as $p) {
-                $temp->arr_url[$urlCounter ++] = $p["p_url"];
+        $ret = null;
+        foreach ($arr as $one) {
+            if ($one->paid == $value) {
+                $urlCounter = 0;
+                $urlSQL = "select p_url from picture where ad_id = " . $one->ad_id;
+                foreach ($connection->query($urlSQL) as $p) {
+                    $one->arr_url[$urlCounter ++] = $p["p_url"];
+                }
+                $ret[$counter ++] = $one;
             }
-            $arr[$counter ++] = $temp;
         }
-        return $arr;
+        return $ret;
+    }
+
+    public static function getCategoryFromArr($connection, $arr, $value)
+    {
+        $counter = 0;
+        $ret = null;
+        foreach ($arr as $one) {
+            if ($one->cat_id == $value) {
+                $urlCounter = 0;
+                $urlSQL = "select p_url from picture where ad_id = " . $one->ad_id;
+                foreach ($connection->query($urlSQL) as $p) {
+                    $one->arr_url[$urlCounter ++] = $p["p_url"];
+                }
+                $ret[$counter ++] = $one;
+            }
+        }
+        return $ret;
+    }
+
+    public static function getSubCategoryFromArr($connection, $arr, $value)
+    {
+        $counter = 0;
+        $ret = null;
+        foreach ($arr as $one) {
+            if ($one->subcat_id == $value) {
+                $urlCounter = 0;
+                $urlSQL = "select p_url from picture where ad_id = " . $one->ad_id;
+                foreach ($connection->query($urlSQL) as $p) {
+                    $one->arr_url[$urlCounter ++] = $p["p_url"];
+                }
+                $ret[$counter ++] = $one;
+            }
+        }
+        return $ret;
     }
 
     public function update($connection)
@@ -405,6 +455,18 @@ class Ad
         $sql = "delete from ad";
         return $connection->exec($sql);
     }
+
+    public static function searchFor($arr, $search)
+    {
+        $ret = null;
+        $counter = 0;
+        foreach ($arr as $value) {
+            if (stripos($value->getTitle(), $search) !== false) {
+                $ret[$counter ++] = $value;
+            }
+        }
+        return $ret;
+    }
 }
 
 class Discount
@@ -445,18 +507,24 @@ class Discount
 
     public function delete($connection)
     {
-        $sql = "delete discount where username = '$this->username'";
+        $sql = "delete from discount where username = '$this->username'";
         return $connection->exec($sql);
     }
 
     public function find($connection)
     {
+        $ret = null;
         $sql = "select * from discount where username = '$this->username'";
         foreach ($connection->query($sql) as $one) {
             $ret = new Discount($one["username"], $one["percentage"], $one["startDate"], $one["endDate"]);
             break;
         }
         return $ret;
+    }
+
+    public function getPercentage()
+    {
+        return $this->percentage;
     }
 }
 
@@ -516,19 +584,22 @@ class PaymentLog
 {
 
     private $ad_id, $amount, $paymentDate, $p_id, $username;
-    public function __construct($ad_id = null, $amount = null, $paymentDate = null, $p_id = null, $username = null){
+
+    public function __construct($ad_id = null, $amount = null, $paymentDate = null, $p_id = null, $username = null)
+    {
         $this->ad_id = $ad_id;
         $this->amount = $amount;
         $this->p_id = $p_id;
         $this->paymentDate = $paymentDate;
         $this->username = $username;
     }
-    
-    public function create($connection){
+
+    public function create($connection)
+    {
         $sql = "insert into paymentLog (ad_id, amount, paymentDate, p_id, username) values($this->ad_id, $this->amount, '$this->paymentDate', $this->p_id, '$this->username')";
         $connection->exec($sql);
     }
-    
+
     public static function getID($connection)
     {
         $sql = "select * from paymentLog";
@@ -538,7 +609,12 @@ class PaymentLog
                 $ret = $one["p_id"];
             }
         }
-        return $ret;
+        return ++ $ret;
+    }
+
+    public function __toString()
+    {
+        return "P_ID " . $this->p_id . " Ad_id " . $this->ad_id . " Date " . $this->paymentDate . " amount " . $this->amount . " username " . $this->username;
     }
 }
 ?>
